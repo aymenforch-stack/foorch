@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🎥 غرفة المشاركة</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial;
+            margin: 0;
+            padding: 10px;
+            background: #1a1a2e;
+            color: white;
+        }
+        
+        #roomHeader {
+            background: #16213e;
+            padding: 15px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        #roomId {
+            font-size: 1.5em;
+            color: #4ecca3;
+            font-weight: bold;
+        }
+        
+        .video-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        video {
+            width: 100%;
+            max-width: 600px;
+            background: black;
+            border-radius: 10px;
+            border: 3px solid #4ecca3;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        
+        .control-btn {
+            background: #232931;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-width: 150px;
+        }
+        
+        .control-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-share { background: #4ecca3; }
+        .btn-control { background: #f95959; }
+        .btn-audio { background: #233142; }
+        .btn-end { background: #ff9a3c; }
+        
+        #status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div id="roomHeader">
+        <h2>🎥 غرفة مشاركة الشاشة</h2>
+        <div>كود الغرفة: <span id="roomId">...</span></div>
+    </div>
+
+    <div id="status">⏳ جاري الاتصال...</div>
+
+    <div class="video-container">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <video id="remoteVideo" autoplay playsinline></video>
+    </div>
+
+    <div class="controls">
+        <button class="control-btn btn-share" onclick="shareScreen()">
+            🖥️ مشاركة شاشتي
+        </button>
+        
+        <button class="control-btn btn-control" onclick="requestControl()">
+            🎮 التحكم عن بعد
+        </button>
+        
+        <button class="control-btn btn-audio" onclick="toggleAudio()">
+            🔊 كتم الصوت
+        </button>
+        
+        <button class="control-btn btn-end" onclick="endSession()">
+            ❌ إنهاء الجلسة
+        </button>
+    </div>
+
+    <!-- نافذة طلب التحكم -->
+    <div id="controlModal" class="hidden" style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        color: black;
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        z-index: 1000;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    ">
+        <h3>🎮 طلب تحكم عن بعد</h3>
+        <p id="controlRequester">...</p>
+        <p>سيتمكن من تحريك الفأرة والنقر والكتابة</p>
+        <div style="margin-top: 20px;">
+            <button onclick="acceptControl()" style="
+                background: #4CAF50;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin: 5px;
+            ">✅ أوافق</button>
+            <button onclick="rejectControl()" style="
+                background: #f44336;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                margin: 5px;
+            ">❌ أرفض</button>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات
+        let peerConnection = null;
+        let localStream = null;
+        let roomId = null;
+        let socket = null;
+        let isSharing = false;
+        let isAudioMuted = false;
+        let hasControl = false;
+        let partnerId = null;
+
+        // عند تحميل الصفحة
+        window.onload = function() {
+            roomId = new URLSearchParams(window.location.search).get('room') || 'TEST';
+            document.getElementById('roomId').textContent = roomId;
+            
+            // تحديث العنوان
+            document.title = `غرفة ${roomId} - مشاركة الشاشة`;
+            
+            // الاتصال بالخادم
+            connectToServer();
+        };
+
+        // الاتصال بخادم WebSocket الخاص بنا
+        function connectToServer() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws?room=${roomId}`;
+            
+            socket = new WebSocket(wsUrl);
+            
+            socket.onopen = () => {
+                updateStatus('✅ متصل - جاهز للمشاركة');
+            };
+            
+            socket.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+            
+            socket.onclose = () => {
+                updateStatus('❌ انقطع الاتصال');
+            };
+        }
+
+        // معالجة الرسائل
+        function handleMessage(msg) {
+            switch(msg.type) {
+                case 'user-joined':
+                    partnerId = msg.userId;
+                    updateStatus(`👤 ${msg.userId} انضم للغرفة`);
+                    break;
+                    
+                case 'offer':
+                    handleOffer(msg);
+                    break;
+                    
+                case 'answer':
+                    handleAnswer(msg);
+                    break;
+                    
+                case 'ice-candidate':
+                    handleIceCandidate(msg);
+                    break;
+                    
+                case 'control-request':
+                    showControlRequest(msg.from);
+                    break;
+                    
+                case 'control-response':
+                    if (msg.accepted) {
+                        hasControl = true;
+                        updateStatus('✅ تم قبول طلب التحكم');
+                        startSendingInputEvents();
+                    } else {
+                        updateStatus('❌ تم رفض طلب التحكم');
+                    }
+                    break;
+            }
+        }
+
+        // مشاركة الشاشة
+        async function shareScreen() {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: "always" },
+                    audio: true
+                });
+                
+                localStream = stream;
+                document.getElementById('localVideo').srcObject = stream;
+                
+                isSharing = true;
+                updateStatus('✅ تم مشاركة الشاشة');
+                
+                // إعداد WebRTC مع الطرف الآخر
+                setupWebRTC(stream);
+                
+            } catch (error) {
+                updateStatus('❌ فشل مشاركة الشاشة');
+                console.error(error);
+            }
+        }
+
+        // إعداد WebRTC
+        function setupWebRTC(stream) {
+            const config = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            };
+            
+            peerConnection = new RTCPeerConnection(config);
+            
+            // إضافة البث المحلي
+            stream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, stream);
+            });
+            
+            // استقبال البث من الطرف الآخر
+            peerConnection.ontrack = (event) => {
+                document.getElementById('remoteVideo').srcObject = event.streams[0];
+                updateStatus('📺 تستقبل شاشة الطرف الآخر');
+            };
+            
+            // إرسال ICE Candidates
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'ice-candidate',
+                        candidate: event.candidate
+                    }));
+                }
+            };
+            
+            // إنشاء العرض
+            peerConnection.createOffer()
+                .then(offer => peerConnection.setLocalDescription(offer))
+                .then(() => {
+                    socket.send(JSON.stringify({
+                        type: 'offer',
+                        sdp: peerConnection.localDescription
+                    }));
+                });
+        }
+
+        // طلب التحكم عن بعد
+        function requestControl() {
+            if (!partnerId) {
+                updateStatus('❌ لا يوجد طرف آخر في الغرفة');
+                return;
+            }
+            
+            socket.send(JSON.stringify({
+                type: 'control-request',
+                to: partnerId
+            }));
+            
+            updateStatus('📤 أرسلت طلب تحكم...');
+        }
+
+        // عرض طلب التحكم للطرف الآخر
+        function showControlRequest(from) {
+            document.getElementById('controlRequester').textContent = 
+                `${from} يريد التحكم في شاشتك`;
+            document.getElementById('controlModal').classList.remove('hidden');
+        }
+
+        // قبول التحكم
+        function acceptControl() {
+            socket.send(JSON.stringify({
+                type: 'control-response',
+                to: partnerId,
+                accepted: true
+            }));
+            
+            document.getElementById('controlModal').classList.add('hidden');
+            updateStatus('✅ سمحت بالتحكم عن بعد');
+        }
+
+        // رفض التحكم
+        function rejectControl() {
+            socket.send(JSON.stringify({
+                type: 'control-response',
+                to: partnerId,
+                accepted: false
+            }));
+            
+            document.getElementById('controlModal').classList.add('hidden');
+            updateStatus('❌ رفضت التحكم عن بعد');
+        }
+
+        // بدء إرسال أحداث التحكم
+        function startSendingInputEvents() {
+            // هنا يتم إرسال أحداث الماوس والكيبورد
+            // تنفيذ حقيقي يتطلب سماح المستخدم
+            updateStatus('🎮 جاهز لإرسال أوامر التحكم');
+        }
+
+        // تبديل كتم الصوت
+        function toggleAudio() {
+            if (localStream) {
+                localStream.getAudioTracks().forEach(track => {
+                    track.enabled = !track.enabled;
+                });
+                isAudioMuted = !isAudioMuted;
+                updateStatus(isAudioMuted ? '🔇 كتمت الصوت' : '🔊 ألغيت كتم الصوت');
+            }
+        }
+
+        // إنهاء الجلسة
+        function endSession() {
+            if (confirm('هل تريد إنهاء الجلسة؟')) {
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+                if (peerConnection) {
+                    peerConnection.close();
+                }
+                if (socket) {
+                    socket.close();
+                }
+                window.location.href = '/';
+            }
+        }
+
+        // تحديث حالة الاتصال
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        // دعم الأجهزة المحمولة
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('button').forEach(btn => {
+                btn.style.padding = '20px 30px';
+                btn.style.fontSize = '18px';
+            });
+        }
+    </script>
+</body>
+</html>
