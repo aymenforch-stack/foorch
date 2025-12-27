@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// تخزين الغرف والاتصالات
+// تخزين الغرف
 const rooms = new Map();
 
 // خدمة الملفات الثابتة
@@ -18,74 +18,91 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// صفحة الغرفة
-app.get('/room.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'room.html'));
+// API بسيط لإنشاء غرفة
+app.get('/api/create-room', (req, res) => {
+    const roomId = generateRoomId();
+    rooms.set(roomId, { users: [], created: Date.now() });
+    
+    res.json({
+        success: true,
+        roomId: roomId,
+        link: `http://${req.headers.host}/?room=${roomId}`
+    });
 });
 
-// معالج WebSocket
+// API للانضمام للغرفة
+app.get('/api/join/:roomId', (req, res) => {
+    const roomId = req.params.roomId;
+    
+    if (rooms.has(roomId)) {
+        res.json({
+            success: true,
+            roomId: roomId,
+            exists: true
+        });
+    } else {
+        res.json({
+            success: false,
+            message: 'الغرفة غير موجودة'
+        });
+    }
+});
+
+// WebSocket للاتصال المباشر
 wss.on('connection', (ws, req) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
-    const roomId = url.searchParams.get('room') || 'default';
-    const userId = generateUserId();
+    const roomId = url.searchParams.get('room');
     
-    console.log(`🔗 مستخدم جديد: ${userId} في غرفة ${roomId}`);
+    if (!roomId) {
+        ws.close();
+        return;
+    }
     
     // إنشاء غرفة إذا لم تكن موجودة
     if (!rooms.has(roomId)) {
-        rooms.set(roomId, new Map());
+        rooms.set(roomId, { users: [], created: Date.now() });
     }
     
     const room = rooms.get(roomId);
-    room.set(userId, ws);
+    const userId = generateUserId();
     
-    // إرسال معلومات الاتصال
+    // إضافة المستخدم للغرفة
+    room.users.push({ id: userId, ws: ws });
+    
+    console.log(`👤 ${userId} انضم لغرفة ${roomId} (${room.users.length} مستخدم)`);
+    
+    // إرسال تأكيد الاتصال
     ws.send(JSON.stringify({
         type: 'connected',
-        userId: userId,
-        roomId: roomId
+        roomId: roomId,
+        userId: userId
     }));
     
     // إعلام الآخرين بانضمام مستخدم جديد
-    broadcastToRoom(roomId, userId, {
-        type: 'user-joined',
-        userId: userId
+    room.users.forEach(user => {
+        if (user.id !== userId && user.ws.readyState === WebSocket.OPEN) {
+            user.ws.send(JSON.stringify({
+                type: 'user-joined',
+                userId: userId,
+                roomId: roomId
+            }));
+        }
     });
     
     // استقبال الرسائل
-    ws.on('message', (data) => {
+    ws.on('message', (message) => {
         try {
-            const message = JSON.parse(data);
-            message.from = userId;
+            const data = JSON.parse(message);
+            data.sender = userId;
             
-            // توجيه الرسائل حسب النوع
-            switch(message.type) {
-                case 'offer':
-                case 'answer':
-                case 'ice-candidate':
-                    // توجيه رسائل WebRTC مباشرة
-                    if (message.to) {
-                        sendToUser(roomId, message.to, message);
-                    } else {
-                        broadcastToRoom(roomId, userId, message);
-                    }
-                    break;
-                    
-                case 'control-request':
-                case 'control-response':
-                    // توجيه رسائل التحكم
-                    if (message.to) {
-                        sendToUser(roomId, message.to, message);
-                    }
-                    break;
-                    
-                default:
-                    // بث عام للرسائل الأخرى
-                    broadcastToRoom(roomId, userId, message);
-            }
-            
+            // توجيه الرسالة لجميع المستخدمين في الغرفة
+            room.users.forEach(user => {
+                if (user.id !== userId && user.ws.readyState === WebSocket.OPEN) {
+                    user.ws.send(JSON.stringify(data));
+                }
+            });
         } catch (error) {
-            console.error('❌ خطأ في معالجة الرسالة:', error);
+            console.error('خطأ في معالجة الرسالة:', error);
         }
     });
     
@@ -93,78 +110,51 @@ wss.on('connection', (ws, req) => {
     ws.on('close', () => {
         if (rooms.has(roomId)) {
             const room = rooms.get(roomId);
-            room.delete(userId);
+            room.users = room.users.filter(user => user.id !== userId);
             
-            // إعلام الآخرين
-            broadcastToRoom(roomId, userId, {
-                type: 'user-left',
-                userId: userId
+            // إعلام الآخرين بخروج المستخدم
+            room.users.forEach(user => {
+                if (user.ws.readyState === WebSocket.OPEN) {
+                    user.ws.send(JSON.stringify({
+                        type: 'user-left',
+                        userId: userId
+                    }));
+                }
             });
             
             // حذف الغرفة الفارغة
-            if (room.size === 0) {
+            if (room.users.length === 0) {
                 rooms.delete(roomId);
                 console.log(`🗑️ حذفت غرفة ${roomId}`);
             }
         }
-        
-        console.log(`👋 غادر: ${userId} من غرفة ${roomId}`);
     });
 });
 
-// دالة البث للغرفة
-function broadcastToRoom(roomId, senderId, message) {
-    if (rooms.has(roomId)) {
-        const room = rooms.get(roomId);
-        room.forEach((client, userId) => {
-            if (userId !== senderId && client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(message));
-            }
-        });
+// توليد كود غرفة
+function generateRoomId() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+    return code;
 }
 
-// إرسال رسالة لمستخدم معين
-function sendToUser(roomId, targetUserId, message) {
-    if (rooms.has(roomId)) {
-        const room = rooms.get(roomId);
-        const client = room.get(targetUserId);
-        if (client && client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(message));
-        }
-    }
-}
-
-// توليد معرف مستخدم فريد
+// توليد معرف مستخدم
 function generateUserId() {
-    return Math.random().toString(36).substr(2, 9);
+    return Math.random().toString(36).substring(2, 9);
 }
-
-// إعادة توجيه جميع المسارات للصفحة الرئيسية
-app.get('*', (req, res) => {
-    res.redirect('/');
-});
 
 // بدء الخادم
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log('='.repeat(50));
-    console.log(`🚀 الخادم يعمل على: http://localhost:${PORT}`);
+    console.log(`✅ الخادم يعمل على: http://localhost:${PORT}`);
     console.log('='.repeat(50));
-    console.log('\n✨ المميزات:');
-    console.log('✅ خاص 100% - لا توجد أطراف ثالثة');
-    console.log('✅ لا يوجد تسجيل دخول');
-    console.log('✅ لا يوجد تخزين بيانات');
-    console.log('✅ تشفير من نظير لنظير');
+    console.log('\n🎯 طريقة الاستخدام:');
+    console.log('1. افتح الموقع ← ينشئ غرفة تلقائياً');
+    console.log('2. اضغط "نعم" ← تبدأ مشاركة الشاشة فوراً');
+    console.log('3. أرسل الرابط لصديقك ← يرى شاشتك مباشرة');
     console.log('='.repeat(50));
-});
-
-// إيقاف نظيف عند إغلاق الخادم
-process.on('SIGINT', () => {
-    console.log('\n🛑 إيقاف الخادم...');
-    wss.close();
-    server.close(() => {
-        console.log('✅ تم إيقاف الخادم');
-        process.exit(0);
-    });
 });
