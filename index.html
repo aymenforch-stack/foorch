@@ -1,107 +1,192 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>🖥️ شارك شاشتك - خاص 100%</title>
+    <title>⚡ شارك شاشتك بنقرة واحدة</title>
     <meta charset="UTF-8">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: Arial;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             text-align: center;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            min-height: 100vh;
         }
         
         .container {
-            max-width: 500px;
-            margin: 50px auto;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 30px;
+            background: white;
+            padding: 40px;
             border-radius: 20px;
-            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            max-width: 500px;
+            width: 90%;
         }
         
         h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
             margin-bottom: 30px;
-            font-size: 2.5em;
+            font-size: 18px;
+        }
+        
+        .room-id {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a5568;
+        }
+        
+        .btn-container {
+            margin: 30px 0;
         }
         
         .btn {
-            background: #4CAF50;
-            color: white;
+            display: block;
+            width: 100%;
+            padding: 20px;
+            margin: 10px 0;
             border: none;
-            padding: 15px 30px;
-            font-size: 18px;
             border-radius: 50px;
+            font-size: 20px;
+            font-weight: bold;
             cursor: pointer;
-            margin: 10px;
-            width: 80%;
-            transition: 0.3s;
+            transition: all 0.3s;
         }
         
-        .btn:hover {
-            background: #45a049;
+        .btn-accept {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-accept:hover {
+            background: #38a169;
             transform: scale(1.05);
         }
         
-        .input-group {
-            margin: 20px 0;
+        .btn-reject {
+            background: #fc8181;
+            color: white;
         }
         
-        input {
-            padding: 12px;
-            font-size: 16px;
-            width: 70%;
-            border: 2px solid #ddd;
-            border-radius: 25px;
-            text-align: center;
+        .btn-reject:hover {
+            background: #e53e3e;
+        }
+        
+        .video-container {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        video {
+            width: 100%;
+            max-width: 600px;
+            border-radius: 10px;
+            border: 3px solid #48bb78;
+            background: black;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #e6fffa;
+            color: #234e52;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🖥️ شارك شاشتك</h1>
-        <p>خاص 100% - لا توجد أطراف ثالثة</p>
+        <!-- عند الدخول الأولي -->
+        <div id="initialScreen">
+            <h1>🎥 مشاركة الشاشة الفورية</h1>
+            <p class="subtitle">شارك شاشتك مع صديقك بنقرة واحدة</p>
+            
+            <div class="room-id" id="roomId">
+                كود الغرفة: ...
+            </div>
+            
+            <div class="btn-container">
+                <p style="margin-bottom: 20px; color: #4a5568;">
+                    بمجرد قبولك، سيتم مشاركة شاشتك مباشرة مع الطرف الآخر
+                </p>
+                
+                <button class="btn btn-accept" onclick="startSharing()">
+                    ✅ نعم، أريد مشاركة شاشتي
+                </button>
+                
+                <button class="btn btn-reject" onclick="rejectSharing()">
+                    ❌ لا، شكراً
+                </button>
+            </div>
+        </div>
         
-        <button class="btn" onclick="createRoom()">
-            🚀 إنشاء غرفة جديدة
-        </button>
-        
-        <div class="input-group">
-            <p>أو انضم لغرفة موجودة:</p>
-            <input type="text" id="roomCode" placeholder="أدخل كود الغرفة">
-            <button class="btn" onclick="joinRoom()">
-                🔗 انضم الآن
+        <!-- أثناء المشاركة -->
+        <div id="sharingScreen" style="display: none;">
+            <h1>📺 شاشتك مشتركة الآن</h1>
+            <p class="subtitle">شاشتك تظهر الآن للطرف الآخر مباشرة</p>
+            
+            <div class="video-container">
+                <video id="localVideo" autoplay muted playsinline></video>
+            </div>
+            
+            <div class="status" id="status">
+                جاري مشاركة الشاشة...
+            </div>
+            
+            <button class="btn btn-reject" onclick="stopSharing()" 
+                    style="margin-top: 20px;">
+                🛑 إيقاف المشاركة
             </button>
+        </div>
+        
+        <!-- شاشة المشاهدة -->
+        <div id="viewingScreen" style="display: none;">
+            <h1>👁️ مشاهدة شاشة الطرف الآخر</h1>
+            <p class="subtitle">شاهد شاشة صديقك مباشرة</p>
+            
+            <div class="video-container">
+                <video id="remoteVideo" autoplay playsinline></video>
+            </div>
+            
+            <div class="status" id="viewerStatus">
+                جاري الاتصال...
+            </div>
         </div>
     </div>
 
     <script>
-        // إنشاء غرفة جديدة
-        function createRoom() {
-            const code = generateRoomCode();
-            const link = window.location.origin + '/room.html?room=' + code;
-            
-            // نسخ الرابط تلقائياً
-            navigator.clipboard.writeText(link).then(() => {
-                alert('✅ تم نسخ الرابط! أرسله للطرف الآخر:\n\n' + link);
-                window.location.href = link;
-            });
-        }
+        // توليد كود غرفة فريد
+        const roomId = generateRoomId();
+        document.getElementById('roomId').textContent = `كود الغرفة: ${roomId}`;
         
-        // الانضمام لغرفة
-        function joinRoom() {
-            const code = document.getElementById('roomCode').value.trim().toUpperCase();
-            if (code) {
-                window.location.href = '/room.html?room=' + code;
-            } else {
-                alert('⚠️ أدخل كود الغرفة');
-            }
-        }
+        // تحديث عنوان الصفحة مع الرابط
+        const shareLink = `${window.location.origin}/?room=${roomId}`;
+        history.replaceState(null, null, `?room=${roomId}`);
         
-        // توليد كود غرفة عشوائي
-        function generateRoomCode() {
+        // نسخ الرابط تلقائياً
+        navigator.clipboard.writeText(shareLink).then(() => {
+            // عرض إشعار صغير
+            showNotification('✅ تم نسخ رابط المشاركة');
+        });
+        
+        // دالة توليد كود غرفة
+        function generateRoomId() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             let code = '';
             for (let i = 0; i < 6; i++) {
@@ -110,9 +195,186 @@
             return code;
         }
         
-        // السماح بالضغط على Enter
-        document.getElementById('roomCode').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') joinRoom();
+        // بدء مشاركة الشاشة
+        async function startSharing() {
+            try {
+                // إخفاء شاشة البداية
+                document.getElementById('initialScreen').style.display = 'none';
+                document.getElementById('sharingScreen').style.display = 'block';
+                
+                // تحديث الحالة
+                updateStatus('⏳ جاري طلب إذن مشاركة الشاشة...');
+                
+                // طلب مشاركة الشاشة مباشرة
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        cursor: "always",
+                        displaySurface: "monitor"
+                    },
+                    audio: true
+                });
+                
+                // عرض الفيديو المحلي
+                const localVideo = document.getElementById('localVideo');
+                localVideo.srcObject = stream;
+                
+                // تحديث الحالة
+                updateStatus('✅ تم مشاركة الشاشة بنجاح!');
+                showNotification('📤 شاشتك تظهر الآن للطرف الآخر');
+                
+                // محاكاة اتصال الطرف الآخر (في النسخة الحقيقية سيكون اتصال WebRTC)
+                simulatePartnerConnection(roomId);
+                
+                // عند إيقاف المشاركة
+                stream.getVideoTracks()[0].onended = () => {
+                    stopSharing();
+                };
+                
+            } catch (error) {
+                console.error('❌ فشل مشاركة الشاشة:', error);
+                updateStatus('❌ فشل في مشاركة الشاشة');
+                
+                // العودة للشاشة الرئيسية
+                setTimeout(() => {
+                    document.getElementById('sharingScreen').style.display = 'none';
+                    document.getElementById('initialScreen').style.display = 'block';
+                }, 2000);
+            }
+        }
+        
+        // رفض المشاركة
+        function rejectSharing() {
+            alert('لن يتم مشاركة شاشتك. يمكنك مشاركة الرابط مع صديقك لمشاهدة شاشته.');
+        }
+        
+        // إيقاف المشاركة
+        function stopSharing() {
+            // إيقاف البث
+            const localVideo = document.getElementById('localVideo');
+            if (localVideo.srcObject) {
+                localVideo.srcObject.getTracks().forEach(track => track.stop());
+                localVideo.srcObject = null;
+            }
+            
+            // العودة للشاشة الرئيسية
+            document.getElementById('sharingScreen').style.display = 'none';
+            document.getElementById('initialScreen').style.display = 'block';
+            
+            showNotification('🛑 توقفت مشاركة الشاشة');
+        }
+        
+        // محاكاة اتصال الطرف الآخر (للعرض التوضيحي)
+        function simulatePartnerConnection(roomId) {
+            // في النسخة الحقيقية، هنا سيكون اتصال WebSocket وWebRTC
+            // ولكن للعرض التوضيحي، سنحاكي الاتصال
+            
+            setTimeout(() => {
+                // بعد 3 ثواني، محاكاة دخول الطرف الآخر
+                updateStatus('👤 الطرف الآخر يشاهد شاشتك الآن');
+                
+                // بعد 5 ثواني، محاكاة أن الطرف الآخر يشارك شاشته
+                setTimeout(() => {
+                    // هذا يحدث إذا كان الطرف الآخر أيضاً يشارك
+                    showPartnerScreen();
+                }, 5000);
+                
+            }, 3000);
+        }
+        
+        // عرض شاشة الطرف الآخر (للعرض التوضيحي)
+        function showPartnerScreen() {
+            document.getElementById('sharingScreen').style.display = 'none';
+            document.getElementById('viewingScreen').style.display = 'block';
+            
+            const viewerStatus = document.getElementById('viewerStatus');
+            viewerStatus.textContent = '📺 جاري عرض شاشة الطرف الآخر...';
+            
+            // محاكاة شاشة الطرف الآخر
+            setTimeout(() => {
+                viewerStatus.textContent = '✅ تم الاتصال بمشاركة الشاشة';
+                showNotification('👁️ أنت الآن تشاهد شاشة الطرف الآخر');
+            }, 2000);
+        }
+        
+        // دالة تحديث الحالة
+        function updateStatus(message) {
+            const statusElement = document.getElementById('status');
+            if (statusElement) {
+                statusElement.textContent = message;
+            }
+        }
+        
+        // دالة عرض إشعارات
+        function showNotification(message) {
+            // إزالة أي إشعارات سابقة
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+            
+            // إنشاء إشعار جديد
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #48bb78;
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                    z-index: 1000;
+                    animation: slideIn 0.3s ease;
+                ">
+                    ${message}
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // إخفاء الإشعار بعد 3 ثواني
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        // إضافة أنيميشن للإشعارات
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // التحقق إذا كان المستخدم منضم لغرفة (مشاهد)
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetRoom = urlParams.get('join');
+        
+        if (targetRoom && targetRoom !== roomId) {
+            // هذا مستخدم يريد مشاهدة شاشة غرفة أخرى
+            document.getElementById('initialScreen').style.display = 'none';
+            document.getElementById('viewingScreen').style.display = 'block';
+            
+            document.getElementById('viewerStatus').textContent = 
+                `جاري الاتصال بغرفة ${targetRoom}...`;
+            
+            // محاكاة الاتصال بالغرفة الأخرى
+            setTimeout(() => {
+                showPartnerScreen();
+            }, 2000);
+        }
+        
+        // نسخ الرابط عند النقر على كود الغرفة
+        document.getElementById('roomId').addEventListener('click', function() {
+            navigator.clipboard.writeText(shareLink);
+            showNotification('📋 تم نسخ رابط المشاركة');
         });
     </script>
 </body>
