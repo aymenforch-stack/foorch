@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>⚡ شارك شاشتك بنقرة واحدة</title>
+    <title>⚡ شاشة مباشرة</title>
     <meta charset="UTF-8">
     <style>
         * {
@@ -12,180 +12,537 @@
         
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1a1a1a;
+            color: white;
             height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* شاشة تحميل أولية */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            text-align: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
         }
         
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            max-width: 500px;
-            width: 90%;
-        }
-        
-        h1 {
-            color: #333;
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #333;
+            border-top: 5px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
             margin-bottom: 20px;
-            font-size: 28px;
         }
         
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* الشاشة الرئيسية */
+        #mainScreen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* شريط المعلومات */
+        .info-bar {
+            background: #2a2a2a;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #4CAF50;
+        }
+        
+        .room-info {
             font-size: 18px;
         }
         
-        .room-id {
-            background: #f0f0f0;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            font-size: 24px;
-            font-weight: bold;
-            color: #4a5568;
-        }
-        
-        .btn-container {
-            margin: 30px 0;
-        }
-        
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 20px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 50px;
-            font-size: 20px;
+        .room-code {
+            background: #4CAF50;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s;
         }
         
-        .btn-accept {
-            background: #48bb78;
-            color: white;
-        }
-        
-        .btn-accept:hover {
-            background: #38a169;
-            transform: scale(1.05);
-        }
-        
-        .btn-reject {
-            background: #fc8181;
-            color: white;
-        }
-        
-        .btn-reject:hover {
-            background: #e53e3e;
-        }
-        
+        /* منطقة الفيديو */
         .video-container {
-            margin-top: 30px;
-            display: none;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: black;
+            position: relative;
+            overflow: hidden;
         }
         
         video {
             width: 100%;
-            max-width: 600px;
-            border-radius: 10px;
-            border: 3px solid #48bb78;
-            background: black;
+            height: 100%;
+            object-fit: contain;
         }
         
-        .status {
-            margin-top: 20px;
+        /* تسمية الفيديو */
+        .video-label {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        /* شريط التحكم */
+        .control-bar {
+            background: #2a2a2a;
             padding: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .control-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+        
+        .control-btn:hover {
+            background: #444;
+            transform: scale(1.05);
+        }
+        
+        .btn-share {
+            background: #4CAF50;
+        }
+        
+        .btn-stop {
+            background: #f44336;
+        }
+        
+        .btn-end {
+            background: #ff9800;
+        }
+        
+        /* حالة الاتصال */
+        .connection-status {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 10;
+        }
+        
+        /* إشعارات */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 15px 25px;
             border-radius: 10px;
-            background: #e6fffa;
-            color: #234e52;
-            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1001;
+            animation: slideIn 0.3s ease;
+            max-width: 300px;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* للأجهزة المحمولة */
+        @media (max-width: 768px) {
+            .control-bar {
+                flex-wrap: wrap;
+            }
+            
+            .control-btn {
+                padding: 15px 20px;
+                font-size: 14px;
+            }
+            
+            .room-info {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- عند الدخول الأولي -->
-        <div id="initialScreen">
-            <h1>🎥 مشاركة الشاشة الفورية</h1>
-            <p class="subtitle">شارك شاشتك مع صديقك بنقرة واحدة</p>
-            
-            <div class="room-id" id="roomId">
-                كود الغرفة: ...
+    <!-- شاشة التحميل -->
+    <div id="loadingScreen">
+        <div class="loader"></div>
+        <h2>جاري إعداد المشاركة...</h2>
+        <p id="loadingText">يتم مشاركة شاشتك تلقائياً</p>
+    </div>
+    
+    <!-- الشاشة الرئيسية -->
+    <div id="mainScreen" style="display: none;">
+        <!-- شريط المعلومات -->
+        <div class="info-bar">
+            <div class="room-info">
+                <span id="userRole">👤 مشارك الشاشة</span>
             </div>
-            
-            <div class="btn-container">
-                <p style="margin-bottom: 20px; color: #4a5568;">
-                    بمجرد قبولك، سيتم مشاركة شاشتك مباشرة مع الطرف الآخر
-                </p>
-                
-                <button class="btn btn-accept" onclick="startSharing()">
-                    ✅ نعم، أريد مشاركة شاشتي
-                </button>
-                
-                <button class="btn btn-reject" onclick="rejectSharing()">
-                    ❌ لا، شكراً
-                </button>
+            <div class="room-code" id="roomCode" onclick="copyRoomLink()">
+                🔗 نسخ الرابط
             </div>
         </div>
         
-        <!-- أثناء المشاركة -->
-        <div id="sharingScreen" style="display: none;">
-            <h1>📺 شاشتك مشتركة الآن</h1>
-            <p class="subtitle">شاشتك تظهر الآن للطرف الآخر مباشرة</p>
+        <!-- منطقة الفيديو -->
+        <div class="video-container">
+            <div class="video-label" id="videoLabel">شاشتك</div>
+            <video id="screenVideo" autoplay playsinline></video>
             
-            <div class="video-container">
-                <video id="localVideo" autoplay muted playsinline></video>
+            <!-- حالة الاتصال -->
+            <div class="connection-status" id="connectionStatus">
+                ⚡ جاري مشاركة الشاشة...
             </div>
+        </div>
+        
+        <!-- شريط التحكم -->
+        <div class="control-bar">
+            <button class="control-btn btn-share" onclick="toggleShare()" id="shareBtn">
+                🖥️ مشاركة الشاشة
+            </button>
             
-            <div class="status" id="status">
-                جاري مشاركة الشاشة...
-            </div>
+            <button class="control-btn" onclick="toggleAudio()" id="audioBtn">
+                🔊 صوت
+            </button>
             
-            <button class="btn btn-reject" onclick="stopSharing()" 
-                    style="margin-top: 20px;">
-                🛑 إيقاف المشاركة
+            <button class="control-btn btn-end" onclick="endSession()">
+                ❌ إنهاء
             </button>
         </div>
-        
-        <!-- شاشة المشاهدة -->
-        <div id="viewingScreen" style="display: none;">
-            <h1>👁️ مشاهدة شاشة الطرف الآخر</h1>
-            <p class="subtitle">شاهد شاشة صديقك مباشرة</p>
-            
-            <div class="video-container">
-                <video id="remoteVideo" autoplay playsinline></video>
-            </div>
-            
-            <div class="status" id="viewerStatus">
-                جاري الاتصال...
-            </div>
-        </div>
     </div>
-
+    
     <script>
-        // توليد كود غرفة فريد
-        const roomId = generateRoomId();
-        document.getElementById('roomId').textContent = `كود الغرفة: ${roomId}`;
+        // ============ المتغيرات الرئيسية ============
+        let screenStream = null;
+        let peerConnection = null;
+        let socket = null;
+        let roomId = null;
+        let userId = null;
+        let isSharing = false;
+        let isAudioEnabled = true;
+        let isHost = false;
         
-        // تحديث عنوان الصفحة مع الرابط
-        const shareLink = `${window.location.origin}/?room=${roomId}`;
-        history.replaceState(null, null, `?room=${roomId}`);
-        
-        // نسخ الرابط تلقائياً
-        navigator.clipboard.writeText(shareLink).then(() => {
-            // عرض إشعار صغير
-            showNotification('✅ تم نسخ رابط المشاركة');
+        // ============ عند تحميل الصفحة ============
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 بدء التطبيق...');
+            
+            // توليد معرف المستخدم
+            userId = generateUserId();
+            
+            // التحقق من معلمات URL
+            const urlParams = new URLSearchParams(window.location.search);
+            roomId = urlParams.get('room');
+            
+            if (!roomId) {
+                // إذا لم يكن هناك room، فهذا هو المستخدم الأول (مشارك الشاشة)
+                roomId = generateRoomId();
+                isHost = true;
+                window.history.replaceState({}, '', `?room=${roomId}`);
+                
+                // تحديث واجهة المستخدم
+                document.getElementById('userRole').textContent = '👤 مشارك الشاشة';
+                document.getElementById('videoLabel').textContent = 'شاشتك';
+                
+                // بدء مشاركة الشاشة تلقائياً
+                setTimeout(() => {
+                    startScreenShare();
+                }, 1000);
+                
+            } else {
+                // هذا هو المستخدم الثاني (المشاهد)
+                isHost = false;
+                document.getElementById('userRole').textContent = '👁️ مشاهد';
+                document.getElementById('videoLabel').textContent = 'شاشة الطرف الآخر';
+                document.getElementById('shareBtn').style.display = 'none';
+                
+                // الاتصال بالغرفة كمشاهد
+                connectAsViewer();
+            }
+            
+            // تحديث كود الغرفة
+            document.getElementById('roomCode').textContent = `🔗 ${roomId}`;
+            
+            // نسخ الرابط تلقائياً إذا كان host
+            if (isHost) {
+                copyRoomLink();
+            }
         });
         
-        // دالة توليد كود غرفة
+        // ============ دالة بدء مشاركة الشاشة ============
+        async function startScreenShare() {
+            try {
+                updateLoadingText('جاري طلب إذن مشاركة الشاشة...');
+                
+                // طلب مشاركة الشاشة مباشرة
+                screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        cursor: "always",
+                        displaySurface: "monitor"
+                    },
+                    audio: true
+                });
+                
+                // عرض الفيديو
+                const videoElement = document.getElementById('screenVideo');
+                videoElement.srcObject = screenStream;
+                
+                // تحديث الحالة
+                isSharing = true;
+                updateStatus('✅ تم مشاركة الشاشة بنجاح');
+                updateLoadingText('جاري الاتصال بالمشاهدين...');
+                
+                // الاتصال بخادم الإشارة
+                connectToSignalingServer();
+                
+                // إخفاء شاشة التحميل
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('loadingScreen').style.display = 'none';
+                        document.getElementById('mainScreen').style.display = 'flex';
+                    }, 500);
+                }, 1500);
+                
+                // عند إيقاف المشاركة
+                screenStream.getVideoTracks()[0].onended = () => {
+                    stopSharing();
+                };
+                
+            } catch (error) {
+                console.error('❌ فشل مشاركة الشاشة:', error);
+                updateLoadingText('فشل مشاركة الشاشة. يرجى تحديث الصفحة والمحاولة مرة أخرى.');
+                
+                // عرض زر المحاولة مرة أخرى
+                setTimeout(() => {
+                    document.getElementById('loadingText').innerHTML = 
+                        'فشل مشاركة الشاشة. <button onclick="location.reload()" style="background:#4CAF50;color:white;border:none;padding:8px 15px;border-radius:5px;margin-top:10px;cursor:pointer;">🔄 المحاولة مرة أخرى</button>';
+                }, 2000);
+            }
+        }
+        
+        // ============ الاتصال بخادم الإشارة ============
+        function connectToSignalingServer() {
+            // في الإصدار الحقيقي، هنا يكون اتصال WebSocket
+            // للعرض التوضيحي، سنحاكي الاتصال
+            
+            updateStatus('📡 جاري الاتصال بالمشاهدين...');
+            
+            // محاكاة اتصال المشاهدين
+            simulateViewerConnections();
+        }
+        
+        // ============ الاتصال كمشاهد ============
+        function connectAsViewer() {
+            updateLoadingText(`جاري الاتصال بغرفة ${roomId}...`);
+            
+            // محاكاة اتصال مع مشارك الشاشة
+            setTimeout(() => {
+                updateLoadingText('✅ متصل! جاري عرض الشاشة...');
+                
+                // إخفاء شاشة التحميل
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('loadingScreen').style.display = 'none';
+                        document.getElementById('mainScreen').style.display = 'flex';
+                        
+                        // محاكاة استقبال شاشة الطرف الآخر
+                        simulateReceivingScreen();
+                    }, 500);
+                }, 2000);
+                
+            }, 1500);
+        }
+        
+        // ============ محاكاة استقبال الشاشة ============
+        function simulateReceivingScreen() {
+            updateStatus('📺 تشاهد الآن شاشة الطرف الآخر');
+            
+            // إنشاء فيديو تجريبي (في الإصدار الحقيقي سيكون بث WebRTC)
+            createDemoVideo();
+            
+            // إشعار
+            showNotification('👁️ أنت الآن تشاهد شاشة الطرف الآخر');
+        }
+        
+        // ============ إنشاء فيديو تجريبي ============
+        function createDemoVideo() {
+            const videoElement = document.getElementById('screenVideo');
+            
+            // إنشاء canvas كمصدر للفيديو التجريبي
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 600;
+            const ctx = canvas.getContext('2d');
+            
+            // دالة الرسم
+            function drawDemoScreen() {
+                // خلفية
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // سطح مكتب وهمي
+                ctx.fillStyle = '#1e3a8a';
+                ctx.fillRect(50, 50, 700, 400);
+                
+                // نوافذ
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(100, 100, 300, 200);
+                ctx.fillStyle = '#3b82f6';
+                ctx.fillRect(110, 110, 280, 30);
+                ctx.fillStyle = '#000';
+                ctx.font = '16px Arial';
+                ctx.fillText('متصفح Chrome', 120, 135);
+                
+                // مؤشر ماوس متحرك
+                const time = Date.now() / 1000;
+                const mouseX = 200 + Math.sin(time) * 100;
+                const mouseY = 200 + Math.cos(time) * 100;
+                
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.moveTo(mouseX, mouseY);
+                ctx.lineTo(mouseX + 10, mouseY + 20);
+                ctx.lineTo(mouseX + 5, mouseY + 20);
+                ctx.lineTo(mouseX, mouseY + 15);
+                ctx.closePath();
+                ctx.fill();
+                
+                // تحويل canvas إلى stream
+                canvas.captureStream(15);
+            }
+            
+            // تحديث الرسم
+            setInterval(drawDemoScreen, 1000/15);
+            
+            // استخدام canvas كمصدر للفيديو
+            const stream = canvas.captureStream(15);
+            videoElement.srcObject = stream;
+        }
+        
+        // ============ محاكاة اتصال المشاهدين ============
+        function simulateViewerConnections() {
+            let viewerCount = 0;
+            
+            // محاكاة دخول مشاهدين
+            const interval = setInterval(() => {
+                viewerCount++;
+                updateStatus(`👁️ ${viewerCount} مشاهد متصل`);
+                
+                if (viewerCount >= 3) {
+                    clearInterval(interval);
+                }
+            }, 2000);
+            
+            // إشعار
+            setTimeout(() => {
+                showNotification('📤 شاشتك تظهر الآن للطرف الآخر');
+            }, 3000);
+        }
+        
+        // ============ تبديل مشاركة الشاشة ============
+        function toggleShare() {
+            if (isSharing) {
+                stopSharing();
+            } else {
+                startScreenShare();
+            }
+        }
+        
+        // ============ إيقاف المشاركة ============
+        function stopSharing() {
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+                screenStream = null;
+            }
+            
+            isSharing = false;
+            updateStatus('⏸️ توقفت مشاركة الشاشة');
+            document.getElementById('shareBtn').innerHTML = '🖥️ إعادة المشاركة';
+            
+            showNotification('⏸️ توقفت مشاركة الشاشة');
+        }
+        
+        // ============ تبديل الصوت ============
+        function toggleAudio() {
+            if (screenStream) {
+                isAudioEnabled = !isAudioEnabled;
+                screenStream.getAudioTracks().forEach(track => {
+                    track.enabled = isAudioEnabled;
+                });
+                
+                document.getElementById('audioBtn').innerHTML = 
+                    isAudioEnabled ? '🔊 صوت' : '🔇 صامت';
+                
+                showNotification(isAudioEnabled ? '🔊 تم تشغيل الصوت' : '🔇 تم كتم الصوت');
+            }
+        }
+        
+        // ============ إنهاء الجلسة ============
+        function endSession() {
+            if (confirm('هل تريد إنهاء الجلسة؟')) {
+                if (screenStream) {
+                    screenStream.getTracks().forEach(track => track.stop());
+                }
+                
+                // في الإصدار الحقيقي، إغلاق اتصالات WebRTC وWebSocket
+                
+                // توجيه للصفحة الرئيسية
+                window.location.href = window.location.origin;
+            }
+        }
+        
+        // ============ نسخ رابط الغرفة ============
+        function copyRoomLink() {
+            const link = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+            
+            navigator.clipboard.writeText(link).then(() => {
+                showNotification('📋 تم نسخ رابط المشاركة');
+                document.getElementById('roomCode').textContent = '✅ تم النسخ!';
+                
+                setTimeout(() => {
+                    document.getElementById('roomCode').textContent = `🔗 ${roomId}`;
+                }, 2000);
+            });
+        }
+        
+        // ============ دوال مساعدة ============
         function generateRoomId() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             let code = '';
@@ -195,187 +552,44 @@
             return code;
         }
         
-        // بدء مشاركة الشاشة
-        async function startSharing() {
-            try {
-                // إخفاء شاشة البداية
-                document.getElementById('initialScreen').style.display = 'none';
-                document.getElementById('sharingScreen').style.display = 'block';
-                
-                // تحديث الحالة
-                updateStatus('⏳ جاري طلب إذن مشاركة الشاشة...');
-                
-                // طلب مشاركة الشاشة مباشرة
-                const stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: {
-                        cursor: "always",
-                        displaySurface: "monitor"
-                    },
-                    audio: true
-                });
-                
-                // عرض الفيديو المحلي
-                const localVideo = document.getElementById('localVideo');
-                localVideo.srcObject = stream;
-                
-                // تحديث الحالة
-                updateStatus('✅ تم مشاركة الشاشة بنجاح!');
-                showNotification('📤 شاشتك تظهر الآن للطرف الآخر');
-                
-                // محاكاة اتصال الطرف الآخر (في النسخة الحقيقية سيكون اتصال WebRTC)
-                simulatePartnerConnection(roomId);
-                
-                // عند إيقاف المشاركة
-                stream.getVideoTracks()[0].onended = () => {
-                    stopSharing();
-                };
-                
-            } catch (error) {
-                console.error('❌ فشل مشاركة الشاشة:', error);
-                updateStatus('❌ فشل في مشاركة الشاشة');
-                
-                // العودة للشاشة الرئيسية
-                setTimeout(() => {
-                    document.getElementById('sharingScreen').style.display = 'none';
-                    document.getElementById('initialScreen').style.display = 'block';
-                }, 2000);
-            }
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substr(2, 6);
         }
         
-        // رفض المشاركة
-        function rejectSharing() {
-            alert('لن يتم مشاركة شاشتك. يمكنك مشاركة الرابط مع صديقك لمشاهدة شاشته.');
-        }
-        
-        // إيقاف المشاركة
-        function stopSharing() {
-            // إيقاف البث
-            const localVideo = document.getElementById('localVideo');
-            if (localVideo.srcObject) {
-                localVideo.srcObject.getTracks().forEach(track => track.stop());
-                localVideo.srcObject = null;
-            }
-            
-            // العودة للشاشة الرئيسية
-            document.getElementById('sharingScreen').style.display = 'none';
-            document.getElementById('initialScreen').style.display = 'block';
-            
-            showNotification('🛑 توقفت مشاركة الشاشة');
-        }
-        
-        // محاكاة اتصال الطرف الآخر (للعرض التوضيحي)
-        function simulatePartnerConnection(roomId) {
-            // في النسخة الحقيقية، هنا سيكون اتصال WebSocket وWebRTC
-            // ولكن للعرض التوضيحي، سنحاكي الاتصال
-            
-            setTimeout(() => {
-                // بعد 3 ثواني، محاكاة دخول الطرف الآخر
-                updateStatus('👤 الطرف الآخر يشاهد شاشتك الآن');
-                
-                // بعد 5 ثواني، محاكاة أن الطرف الآخر يشارك شاشته
-                setTimeout(() => {
-                    // هذا يحدث إذا كان الطرف الآخر أيضاً يشارك
-                    showPartnerScreen();
-                }, 5000);
-                
-            }, 3000);
-        }
-        
-        // عرض شاشة الطرف الآخر (للعرض التوضيحي)
-        function showPartnerScreen() {
-            document.getElementById('sharingScreen').style.display = 'none';
-            document.getElementById('viewingScreen').style.display = 'block';
-            
-            const viewerStatus = document.getElementById('viewerStatus');
-            viewerStatus.textContent = '📺 جاري عرض شاشة الطرف الآخر...';
-            
-            // محاكاة شاشة الطرف الآخر
-            setTimeout(() => {
-                viewerStatus.textContent = '✅ تم الاتصال بمشاركة الشاشة';
-                showNotification('👁️ أنت الآن تشاهد شاشة الطرف الآخر');
-            }, 2000);
-        }
-        
-        // دالة تحديث الحالة
         function updateStatus(message) {
-            const statusElement = document.getElementById('status');
-            if (statusElement) {
-                statusElement.textContent = message;
-            }
+            document.getElementById('connectionStatus').textContent = message;
         }
         
-        // دالة عرض إشعارات
+        function updateLoadingText(message) {
+            document.getElementById('loadingText').textContent = message;
+        }
+        
         function showNotification(message) {
-            // إزالة أي إشعارات سابقة
-            const existing = document.querySelector('.notification');
-            if (existing) existing.remove();
+            // إزالة الإشعارات القديمة
+            const oldNotifications = document.querySelectorAll('.notification');
+            oldNotifications.forEach(n => n.remove());
             
             // إنشاء إشعار جديد
             const notification = document.createElement('div');
             notification.className = 'notification';
-            notification.innerHTML = `
-                <div style="
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: #48bb78;
-                    color: white;
-                    padding: 15px 25px;
-                    border-radius: 10px;
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                    z-index: 1000;
-                    animation: slideIn 0.3s ease;
-                ">
-                    ${message}
-                </div>
-            `;
+            notification.textContent = message;
             
             document.body.appendChild(notification);
             
-            // إخفاء الإشعار بعد 3 ثواني
+            // إزالة الإشعار بعد 3 ثواني
             setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
+                notification.style.animation = 'slideIn 0.3s ease reverse';
                 setTimeout(() => notification.remove(), 300);
             }, 3000);
         }
         
-        // إضافة أنيميشن للإشعارات
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        // التحقق إذا كان المستخدم منضم لغرفة (مشاهد)
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetRoom = urlParams.get('join');
-        
-        if (targetRoom && targetRoom !== roomId) {
-            // هذا مستخدم يريد مشاهدة شاشة غرفة أخرى
-            document.getElementById('initialScreen').style.display = 'none';
-            document.getElementById('viewingScreen').style.display = 'block';
-            
-            document.getElementById('viewerStatus').textContent = 
-                `جاري الاتصال بغرفة ${targetRoom}...`;
-            
-            // محاكاة الاتصال بالغرفة الأخرى
-            setTimeout(() => {
-                showPartnerScreen();
-            }, 2000);
+        // ============ دعم الأجهزة المحمولة ============
+        if ('ontouchstart' in window) {
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.style.padding = '15px 20px';
+                btn.style.fontSize = '14px';
+            });
         }
-        
-        // نسخ الرابط عند النقر على كود الغرفة
-        document.getElementById('roomId').addEventListener('click', function() {
-            navigator.clipboard.writeText(shareLink);
-            showNotification('📋 تم نسخ رابط المشاركة');
-        });
     </script>
 </body>
 </html>
