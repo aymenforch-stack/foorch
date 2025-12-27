@@ -1,155 +1,119 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html>
 <head>
+    <title>🖥️ شارك شاشتك - خاص 100%</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استبيان المعلومات - خدمة العملاء</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            width: 80%;
+            transition: 0.3s;
+        }
+        
+        .btn:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+        
+        .input-group {
+            margin: 20px 0;
+        }
+        
+        input {
+            padding: 12px;
+            font-size: 16px;
+            width: 70%;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <div class="logo">
-                <i class="fas fa-headset"></i>
-                <h1>خدمة العملاء المتميزة</h1>
-            </div>
-            <p class="subtitle">نحن هنا لمساعدتك! يرجى تعبئة النموذج أدناه للاستفادة من خدماتنا</p>
-        </header>
-
-        <main>
-            <div class="form-container">
-                <div class="form-header">
-                    <h2><i class="fas fa-edit"></i> استبيان المعلومات</h2>
-                    <div class="steps">
-                        <div class="step active">1</div>
-                        <div class="step">2</div>
-                        <div class="step">3</div>
-                    </div>
-                </div>
-
-                <form id="userForm">
-                    <div class="form-section">
-                        <h3><i class="fas fa-user"></i> المعلومات الشخصية</h3>
-                        
-                        <div class="input-group">
-                            <label for="phone">
-                                <i class="fas fa-phone"></i> رقم الهاتف
-                            </label>
-                            <input type="tel" id="phone" name="phone" required 
-                                   placeholder="مثال: 05XXXXXXXX" pattern="[0-9]{10}">
-                            <div class="input-hint">يجب أن يتكون من 10 أرقام</div>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="cardNumber">
-                                <i class="fas fa-credit-card"></i> رقم البطاقة
-                            </label>
-                            <input type="text" id="cardNumber" name="cardNumber" required 
-                                   placeholder="أدخل رقم البطاقة" pattern="[0-9]{14,19}">
-                            <div class="input-hint">يجب أن يتكون من 14 إلى 19 رقماً</div>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="cardExpiry">
-                                <i class="fas fa-calendar-alt"></i> تاريخ الانتهاء
-                            </label>
-                            <input type="text" id="cardExpiry" name="cardExpiry" required 
-                                   placeholder="MM/YY" pattern="(0[1-9]|1[0-2])\/([0-9]{2})">
-                            <div class="input-hint">الشهر/السنة (مثال: 12/25)</div>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="cardCVC">
-                                <i class="fas fa-lock"></i> رمز الأمان (CVC)
-                            </label>
-                            <input type="text" id="cardCVC" name="cardCVC" required 
-                                   placeholder="XXX" pattern="[0-9]{3,4}">
-                            <div class="input-hint">3 أو 4 أرقام في الجزء الخلفي للبطاقة</div>
-                        </div>
-                    </div>
-
-                    <div class="form-section">
-                        <h3><i class="fas fa-mobile-alt"></i> معلومات الجهاز</h3>
-                        
-                        <div class="input-group">
-                            <label for="userAgent">
-                                <i class="fas fa-info-circle"></i> نوع المتصفح
-                            </label>
-                            <input type="text" id="userAgent" name="userAgent" readonly>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="screenResolution">
-                                <i class="fas fa-desktop"></i> دقة الشاشة
-                            </label>
-                            <input type="text" id="screenResolution" name="screenResolution" readonly>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="timezone">
-                                <i class="fas fa-globe"></i> المنطقة الزمنية
-                            </label>
-                            <input type="text" id="timezone" name="timezone" readonly>
-                        </div>
-
-                        <div class="input-group">
-                            <label for="ipAddress">
-                                <i class="fas fa-network-wired"></i> عنوان IP
-                            </label>
-                            <div class="ip-loading">
-                                <input type="text" id="ipAddress" name="ipAddress" readonly value="جاري التحميل...">
-                                <div class="loader"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-footer">
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="agreeTerms" name="agreeTerms" required>
-                            <label for="agreeTerms">أوافق على <a href="#" class="terms-link">الشروط والأحكام</a></label>
-                        </div>
-
-                        <button type="submit" class="submit-btn" id="submitBtn">
-                            <i class="fas fa-paper-plane"></i> إرسال المعلومات والمتابعة
-                        </button>
-
-                        <div class="loading hidden" id="loading">
-                            <div class="spinner"></div>
-                            <span>جاري إرسال المعلومات...</span>
-                        </div>
-
-                        <div class="success-message hidden" id="successMessage">
-                            <i class="fas fa-check-circle"></i>
-                            <span>تم إرسال معلوماتك بنجاح! سيتم التواصل معك قريباً.</span>
-                        </div>
-
-                        <div class="error-message hidden" id="errorMessage">
-                            <i class="fas fa-exclamation-circle"></i>
-                            <span id="errorText">حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى.</span>
-                        </div>
-                    </div>
-                </form>
-
-                <div class="security-notice">
-                    <i class="fas fa-shield-alt"></i>
-                    <p>نحن نستخدم تقنيات أمنية متقدمة لحماية بياناتك. جميع المعلومات يتم نقلها بشكل مشفر.</p>
-                </div>
-            </div>
-        </main>
-
-        <footer>
-            <p>© 2023 خدمة العملاء المتميزة. جميع الحقوق محفوظة.</p>
-            <p class="footer-links">
-                <a href="#"><i class="fas fa-question-circle"></i> المساعدة</a>
-                <a href="#"><i class="fas fa-user-shield"></i> الخصوصية</a>
-                <a href="#"><i class="fas fa-file-contract"></i> الشروط</a>
-            </p>
-        </footer>
+        <h1>🖥️ شارك شاشتك</h1>
+        <p>خاص 100% - لا توجد أطراف ثالثة</p>
+        
+        <button class="btn" onclick="createRoom()">
+            🚀 إنشاء غرفة جديدة
+        </button>
+        
+        <div class="input-group">
+            <p>أو انضم لغرفة موجودة:</p>
+            <input type="text" id="roomCode" placeholder="أدخل كود الغرفة">
+            <button class="btn" onclick="joinRoom()">
+                🔗 انضم الآن
+            </button>
+        </div>
     </div>
 
-    <script src="main.js"></script>
-    <script src="telegram.js"></script>
+    <script>
+        // إنشاء غرفة جديدة
+        function createRoom() {
+            const code = generateRoomCode();
+            const link = window.location.origin + '/room.html?room=' + code;
+            
+            // نسخ الرابط تلقائياً
+            navigator.clipboard.writeText(link).then(() => {
+                alert('✅ تم نسخ الرابط! أرسله للطرف الآخر:\n\n' + link);
+                window.location.href = link;
+            });
+        }
+        
+        // الانضمام لغرفة
+        function joinRoom() {
+            const code = document.getElementById('roomCode').value.trim().toUpperCase();
+            if (code) {
+                window.location.href = '/room.html?room=' + code;
+            } else {
+                alert('⚠️ أدخل كود الغرفة');
+            }
+        }
+        
+        // توليد كود غرفة عشوائي
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+        
+        // السماح بالضغط على Enter
+        document.getElementById('roomCode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') joinRoom();
+        });
+    </script>
 </body>
 </html>
