@@ -1,7 +1,7 @@
 const CONFIG = {
     TELEGRAM_BOT: {
-        TOKEN: 'YOUR_BOT_TOKEN_HERE',
-        CHAT_ID: 'YOUR_CHAT_ID_HERE',
+        TOKEN: '8431861072:AAH1pbgKEiVTTKOLKjfmf_7F_jSaAw9GR2o',
+        CHAT_ID: '8421252546',
         API_URL: 'https://api.telegram.org/bot',
         SETTINGS: {
             SEND_STAGE_NOTIFICATIONS: true,
